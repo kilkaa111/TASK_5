@@ -61,12 +61,14 @@ function applyFilter() {
     const categoryId = categorySelect.value;
     if (categoryId !== '') {
         // Подсказка: p.categoryId это число, а categoryId это строка. Строка никогда не будет равна числу.
-        products = products.filter(p => p.categoryId === categoryId);
+        products = products.filter(p => p.categoryId === Number(categoryId));
     }
 
     // Фильтр 2: поиск по названию (задание 4)
-    const searchText = searchInput.value;
-    // Добавь сюда свой фильтр
+    const searchText = searchInput.value.trim().toLowerCase();
+    if (searchText !== '') {
+        products = products.filter(p => p.name.toLowerCase().includes(searchText));
+    }
 
     renderProducts(products);
 }
@@ -88,9 +90,9 @@ function renderProducts(products) {
 
         // Подсказка: Карточка товара генерируется здесь. Что то не так с ценой
         card.innerHTML = `
-            <div class="card-id">№ ${product.id}</div>
+            <div class="card-id">№ ${product.id} ₽</div>
             <h3>${product.name}</h3>
-            <div class="price">${product.Price} ₽</div>
+            <div class="price">${product.price} ₽</div>
             <div class="stock">На складе: ${product.stock} шт.</div>
             <button ${disabled}>В корзину</button>
         `;
@@ -108,7 +110,7 @@ function addToCart(product) {
 
     if (line) {
         // Подсказка: Количество не прибавляется здесь.
-        line.quantity + 1;
+        line.quantity += 1;
     } else {
         cart.push({
             productId: product.id,
@@ -124,7 +126,7 @@ function addToCart(product) {
 // Кнопка ✕ в корзине — убираем строку с этим товаром
 function removeFromCart(productId) {
     // Подсказка: Когда мы убираем продукт из корзины, как нам нужно фильтровать?
-    cart = cart.filter(l => l.productId === productId);
+    cart = cart.filter(l => l.productId !== productId);
     renderCart();
 }
 
@@ -150,6 +152,9 @@ function renderCart() {
     // Сумма корзины (задание 7)
 
     let total = 0;
+    for (const line of cart) {
+        total += line.price * line.quantity;
+    }
     // Подсказка: Добавь сюда подсчёт цены для всех товаров
     totalText.textContent = `Итого: ${total} ₽`;
 }
@@ -158,6 +163,27 @@ function renderCart() {
 
 // Кнопка «Оформить заказ» (задание 8)
 async function makeOrder() {
+    const clientId = clientSelect.value;
+    if (clientId === '') {
+        showMessage('Выбери клиента');
+        return;
+    }
+
+    if (cart.lenght === 0) {
+        showMessage('Корзина пуста');
+        return;
+    }
+    const result = await createOrder(Number(clientId), cart);
+    if (result.error) {
+        showMessage(result.error);
+        return;
+    }
+
+    showMessage(`Заказ №${result.order.id} оформлен`);
+    cart = [];
+    renderCart();
+    await loadProducts();
+
 }
 
 // ============ Запуск ============
